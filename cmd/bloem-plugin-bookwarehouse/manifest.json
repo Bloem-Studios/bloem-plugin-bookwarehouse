@@ -1,0 +1,210 @@
+{
+  "plugin_id": "bloem.storage.bookwarehouse",
+  "version": "0.4.0",
+  "checksum": "__CHECKSUM__",
+  "silo_api_version": "v1",
+  "supported_platforms": [
+    {
+      "os": "linux",
+      "arch": "amd64"
+    },
+    {
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "os": "darwin",
+      "arch": "arm64"
+    }
+  ],
+  "capabilities": [
+    {
+      "type": "request_router.v1",
+      "id": "ebooks",
+      "display_name": "Bookwarehouse ebook requests",
+      "description": "Request ebooks by ISBN and follow their progress in Bookwarehouse. Served by an installation whose content is ebooks.",
+      "metadata": {
+        "supported_media_types": [
+          "book"
+        ]
+      },
+      "request_router": {
+        "wording": {
+          "step": "Acquiring",
+          "queued": {
+            "label": "Searching",
+            "detail": "Bookwarehouse is searching for the ebook."
+          },
+          "downloading": {
+            "label": "Downloading",
+            "detail": "Bookwarehouse is downloading the ebook."
+          }
+        },
+        "api_key_optional": true,
+        "base_url_optional": true
+      },
+      "config_schema": [
+        {
+          "key": "connection",
+          "title": "Bookwarehouse ebook requests",
+          "json_schema": "{\"type\":\"object\",\"properties\":{\"allow_pdf\":{\"type\":\"boolean\",\"default\":false},\"preferred_format\":{\"type\":\"string\",\"enum\":[\"epub\",\"pdf\"]}},\"additionalProperties\":false}",
+          "admin_form": {
+            "fields": [
+              {
+                "key": "allow_pdf",
+                "label": "Allow PDF",
+                "description": "Let people request PDFs, not only EPUBs.",
+                "control": "ADMIN_FORM_CONTROL_SWITCH",
+                "default_value": false
+              },
+              {
+                "key": "preferred_format",
+                "label": "Ebook format",
+                "description": "Leave unset to use the installation's requested ebook format.",
+                "control": "ADMIN_FORM_CONTROL_SELECT",
+                "dynamic_options": true,
+                "options": [
+                  {
+                    "value": "epub",
+                    "label": "EPUB"
+                  },
+                  {
+                    "value": "pdf",
+                    "label": "PDF"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "request_router.v1",
+      "id": "audiobooks",
+      "display_name": "Bookwarehouse audiobook requests",
+      "description": "Find a requested audiobook on AudiobookBay through Bookwarehouse, download it with Bookwarehouse's torrent client and follow it until Bookwarehouse imports it. Served by an installation whose content is audiobooks; needs a Curator key.",
+      "metadata": {
+        "supported_media_types": [
+          "audiobook"
+        ]
+      },
+      "request_router": {
+        "wording": {
+          "step": "Acquiring",
+          "queued": {
+            "label": "Queued",
+            "detail": "Bookwarehouse has the audiobook queued."
+          },
+          "downloading": {
+            "label": "Downloading",
+            "detail": "Bookwarehouse is downloading and importing the audiobook."
+          }
+        },
+        "api_key_optional": true,
+        "base_url_optional": true
+      }
+    }
+  ],
+  "global_config_schema": [
+    {
+      "key": "connection",
+      "title": "Bookwarehouse connection",
+      "description": "Read ebooks (EPUB and PDF) or audiobooks straight from Bookwarehouse, and order the ones people request. Files are checked and kept in a size-limited private cache.",
+      "json_schema": "{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\",\"enum\":[\"ebooks\",\"audiobooks\"],\"default\":\"ebooks\",\"description\":\"Use a distinct configured source for audiobooks; do not change a populated source feed.\"},\"base_url\":{\"type\":\"string\",\"description\":\"Bookwarehouse HTTPS origin or reverse-proxy prefix; omit /api/v1.\"},\"api_key\":{\"type\":\"string\",\"description\":\"Bookwarehouse API key with book-read and download permissions.\"},\"request_api_key\":{\"type\":\"string\",\"description\":\"Optional Bookwarehouse API key with the Curator role, used for audiobook torrent requests. Empty means api_key.\"},\"preferred_format\":{\"type\":\"string\",\"enum\":[\"epub\",\"pdf\"],\"default\":\"epub\",\"description\":\"Ebook format to request from Bookwarehouse.\"},\"allow_insecure_http\":{\"type\":\"boolean\",\"default\":false},\"source_id\":{\"type\":\"string\",\"pattern\":\"^[A-Za-z0-9_-]{1,128}$\",\"default\":\"bookwarehouse\"},\"source_name\":{\"type\":\"string\",\"maxLength\":256,\"default\":\"Bookwarehouse\"},\"max_book_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":8589934592,\"default\":134217728},\"max_cache_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":34359738368,\"default\":536870912}},\"additionalProperties\":false}",
+      "admin_form": {
+        "fields": [
+          {
+            "key": "content",
+            "label": "Content",
+            "control": "ADMIN_FORM_CONTROL_SELECT",
+            "default_value": "ebooks",
+            "description": "Ebooks and audiobooks each need their own connection with a different source ID. The size limits apply to ebooks only.",
+            "options": [
+              {
+                "value": "ebooks",
+                "label": "Ebooks (EPUB/PDF)"
+              },
+              {
+                "value": "audiobooks",
+                "label": "Audiobooks"
+              }
+            ]
+          },
+          {
+            "key": "base_url",
+            "label": "Bookwarehouse address",
+            "control": "ADMIN_FORM_CONTROL_TEXT",
+            "placeholder": "https://books.example",
+            "description": "The address you open Bookwarehouse at, including any path. Don’t add /api/v1."
+          },
+          {
+            "key": "api_key",
+            "label": "API key",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true
+          },
+          {
+            "key": "request_api_key",
+            "label": "Request API key (Curator)",
+            "control": "ADMIN_FORM_CONTROL_PASSWORD",
+            "secret": true,
+            "description": "Audiobook requests add torrents in Bookwarehouse, which needs a key with the Curator role. Leave empty to use the API key above."
+          },
+          {
+            "key": "preferred_format",
+            "label": "Requested ebook format",
+            "control": "ADMIN_FORM_CONTROL_SELECT",
+            "default_value": "epub",
+            "description": "The format ebook requests ask Bookwarehouse for.",
+            "options": [
+              {
+                "value": "epub",
+                "label": "EPUB"
+              },
+              {
+                "value": "pdf",
+                "label": "PDF"
+              }
+            ]
+          },
+          {
+            "key": "allow_insecure_http",
+            "label": "Allow unencrypted HTTP",
+            "control": "ADMIN_FORM_CONTROL_SWITCH",
+            "default_value": false,
+            "description": "Only on a network you trust: over http the API key is sent unencrypted."
+          },
+          {
+            "key": "source_id",
+            "label": "Source ID",
+            "description": "A short, unique name for this connection, like bookwarehouse.",
+            "control": "ADMIN_FORM_CONTROL_TEXT",
+            "default_value": "bookwarehouse"
+          },
+          {
+            "key": "source_name",
+            "label": "Source name",
+            "description": "What admins see for this connection.",
+            "control": "ADMIN_FORM_CONTROL_TEXT",
+            "default_value": "Bookwarehouse"
+          },
+          {
+            "key": "max_book_bytes",
+            "label": "Largest book (bytes)",
+            "description": "Bigger ebooks are skipped. The default, 134217728, is 128 MB.",
+            "control": "ADMIN_FORM_CONTROL_NUMBER",
+            "default_value": 134217728
+          },
+          {
+            "key": "max_cache_bytes",
+            "label": "Cache size (bytes)",
+            "description": "How much space the ebook cache may use. The default, 536870912, is 512 MB.",
+            "control": "ADMIN_FORM_CONTROL_NUMBER",
+            "default_value": 536870912
+          }
+        ]
+      }
+    }
+  ]
+}
