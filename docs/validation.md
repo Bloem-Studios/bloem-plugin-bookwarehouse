@@ -162,10 +162,10 @@ The internal provider, HTTP client and verified-cache suites also cover:
   replies that do not match the request.
 - Embedded chapters of a one-file book, a 1,194-chapter one-file book, chapters that
   do not fit their track, and a track whose chapters outgrow a page.
-- Prior ebook defaults, configuration token namespace, read/hash and cover tests.
+- Ebook defaults, configuration token namespace, read/hash and cover tests.
 - Keyset listing that visits every book once across catalog changes, advisory totals,
   unpublishable rows, the reply-size budget, replies before the deadline, change
-  tokens with deletions, the full-scan anchor, and legacy tokens and cursors.
+  tokens with deletions, the full-scan anchor, and version-1 tokens and version-3 cursors.
 - The verified cache: private files, mismatched, truncated and oversized downloads,
   least-recently-used eviction, the 128-entry limit, four concurrent downloads,
   downloads that outlive their caller, resumed and restarted transfers, stalled

@@ -82,7 +82,7 @@ flowchart TD
   other details come with it, so Bloem can show the book without downloading it.
 - Inside `epub` and `pdf`, the plugin can show Bookwarehouse's own **subfolders**,
   so a library can take just one shelf. This needs a Bookwarehouse that offers its
-  folder list. An older Bookwarehouse still serves the two top folders and their
+  folder list. A Bookwarehouse without it still serves the two top folders and their
   books, but opening a subfolder fails. A folder with no books in it doesn't appear.
 - An **audiobook source** starts with three folders: `audiobooks`, `authors` and
   `series`. Each book is a folder of its **tracks**, the audio files. An author or
@@ -274,9 +274,6 @@ Bookwarehouse and never cached.
 If the server URL or the API key is missing, the source stays **not connected**:
 it installs, but every list or read fails until both are set.
 
-Upgrading from 0.3.x needs no settings change: the two request settings are
-optional, and adding them doesn't change the source's file identities.
-
 ## Ordering requested books
 
 When a viewer asks for a book the library doesn't have, Bloem can hand the request
@@ -287,9 +284,9 @@ Bloem still decides who may ask, approves requests and decides when one is done.
 - **Ebooks.** An installation whose content is `ebooks` orders by ISBN through
   Bookwarehouse's monitoring (`POST /monitoring/add`), after checking that
   Bookwarehouse has neither the book nor an order for it. A request is done when
-  the ebook shows up in the linked library. This is the ordering that the separate
-  Bookwarehouse ebook requests plugin (`bloem.requests.bookwarehouse`) used to do,
-  unchanged.
+  the ebook shows up in the linked library. The separate
+  Bookwarehouse ebook requests plugin (`bloem.requests.bookwarehouse`) orders ebooks
+  the same way.
 - **Audiobooks.** An installation whose content is `audiobooks` searches
   AudiobookBay through Bookwarehouse, picks the best release by itself and has
   Bookwarehouse download and import it with its own torrent client. It picks only a
@@ -365,7 +362,7 @@ illustrated PDFs of up to 300 MiB, and a shelf of audiobooks.
   library uses it. So before creating the library, the club's administrator sets
   the largest book to 384 MiB and the cache size to 1 GiB, through the configuration
   route.
-- **What the cache holds.** The cache now keeps three of the largest PDFs at once,
+- **What the cache holds.** The cache keeps three of the largest PDFs at once,
   plus small books, up to 128 in all. When a member opens a fourth large PDF, the
   copy used longest ago is dropped to make room. The first opening of a large PDF
   downloads all 300 MiB before its first page shows.
@@ -530,11 +527,8 @@ metadata, shell history and logs. Use a protected local request file for
 installation. The provider does not use inherited credential environment variables
 or a RuntimeHost broker.
 
-Releases up to 0.3.9 show an admin-form hint for `content` saying audiobooks need
-explicit audio-sized cache limits. That predates 0.3.4: tracks are no longer
-downloaded or cached, so the limits apply to ebooks only (see
-[Audiobook source](#audiobook-source)). 0.3.10 carries the corrected hint and changes
-nothing else.
+Audiobook tracks are not downloaded or cached, so the size limits apply to ebooks
+only (see [Audiobook source](#audiobook-source)).
 
 ### File identities and immutable reads
 
@@ -556,9 +550,9 @@ revision for host browsing; a supplied directory revision must still match.
 Directory-only browsing under `epub` or `pdf` uses the read-only
 `GET /api/v1/books/folders` endpoint to expose the actual nested directories in
 Bookwarehouse's relative catalog storage keys. The endpoint and the optional `folder`
-filter on `GET /api/v1/books` must be present in Bookwarehouse. Older backends
-continue to support the existing flat scans and reads, but deeper browsing requires
-that API addition; a missing endpoint fails the browse. Empty directories without
+filter on `GET /api/v1/books` must be present in Bookwarehouse. A Bookwarehouse
+without them still supports flat scans and reads, but deeper browsing needs them; a
+missing endpoint fails the browse. Empty directories without
 cataloged books have no API representation. A root listing never calls this
 endpoint.
 
@@ -714,9 +708,9 @@ from a token returns the books updated since it (with a ten-minute overlap), the
 books Bookwarehouse's audiobook deletion feed reports, as removed `audiobooks/<ID>`
 entries. Tokens expire seven days after the full listing that started them. Books,
 collections and browsing are always listed in full and refuse a token with
-`FailedPrecondition`. Audio tokens name the feed `audiobooks-2` since 0.3.9, when a
-listed book began to carry a one-file book's embedded chapters; a token naming an
-earlier feed is refused, so the host lists every book in full once.
+`FailedPrecondition`. Audio tokens name the feed `audiobooks-2`, because a listed book carries a
+one-file book's embedded chapters; a token naming any other feed is refused, so the
+host lists every book in full.
 
 A track keeps ID `audio/<provider book ID>/<provider file ID>`, name
 `<file ID>.<container>` and logical path `audiobooks/<book ID>/<file ID>.<container>`.
@@ -828,8 +822,8 @@ previous traversal's upper bound, including `removed_entry_ids` from
 `GET /books/deletions`. The overlap can repeat entries across scans and catches
 bounded clock skew and late commits. A token retains the original full-scan start
 across incremental scans; after seven days it is refused so the host runs a full
-listing. Older version-1 tokens and version-3 continuation cursors remain readable; a
-legacy token starts its full-scan deadline from its stored upper bound, and an
+listing. Version-1 tokens and version-3 continuation cursors are readable; a
+version-1 token starts its full-scan deadline from its stored upper bound, and an
 existing continuation finishes in place. The root directory never accepts a token.
 
 The overlap cannot guarantee delivery of writes with older timestamps. Full scans can
@@ -913,7 +907,7 @@ Client rules (`internal/bookwarehouse/client.go`):
   their catalog checksum, without an approval entry or restart, under keys
   `bookwarehouse-<version>-<os>-<arch>-<SHA-256>`, and downloaded from
   `https://github.com/Bloem-Studios/bloem-plugins/releases/download/bookwarehouse-v<version>/plugin-<os>-<arch>`.
-  `POST /api/bloem/v1/admin/{platform,organization}/native-storage/catalog/installations`
+  `POST /api/bloem/v2/admin/{platform,organization}/native-storage/catalog/installations`
   takes the same JSON fields as a manual installation request (no binary part), and
   `.../catalog/installations/{installation_id}/upgrade` takes `artifact_key`,
   `source_key` and `expected_revision`. Manual approvals and uploads are on the
@@ -961,8 +955,8 @@ content; an unknown capability ID is `InvalidArgument`; an unconfigured installa
 is `FailedPrecondition` (Validate answers it as a form error). Calls within one
 process are serialized.
 
-**Ebooks** keep the behavior and the `bwh1.` receipts of
-`bloem.requests.bookwarehouse` 0.1.5. The request connection's `config` may set
+**Ebooks** behave, and issue `bwh1.` receipts, like the separate
+`bloem.requests.bookwarehouse` plugin. The request connection's `config` may set
 `allow_pdf` and `preferred_format`, which overrides the installation's; PDF needs
 `allow_pdf` or an installation `preferred_format` of `pdf`, and the requested
 quality must equal the resulting format. Fulfill first reads every monitoring page
@@ -1049,6 +1043,6 @@ operating-system sandbox.
   [How native storage works](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-native-storage.md),
   [how stored audiobooks play](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-native-audio-playback.md)
   and [how ebook requests work](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-ebook-request-foundation.md),
-  whose requests this plugin now orders and delivers into a library on this source.
+  whose requests this plugin orders and delivers into a library on this source.
 - The SDK v0.29.0
   [storage-provider guide](https://github.com/Bloem-Studios/bloem-plugin-sdk/blob/v0.29.0/docs/storage-provider.md).

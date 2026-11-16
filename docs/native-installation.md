@@ -70,19 +70,19 @@ Good to know:
 | An approval | one entry: artifact key → `{manifest, checksum, os, arch}` |
 | Fingerprint | the executable's SHA-256, in `SHA256SUMS` and the manifest's `checksum` |
 | Manifest | the output of `bloem-plugin-bookwarehouse manifest`, saved as `manifest.json` |
-| Administrative context | the token from `POST /api/bloem/v1/admin/session` |
+| Administrative context | the `access_token` from `POST /api/bloem/v2/admin/session` |
 | Install, upgrade | `POST .../native-storage/installations` and `.../installations/{installation_id}/upgrade` |
 | Replace settings | `PUT .../native-storage/sources/{source_key}/configuration` |
 | Source key | the source's UUID, `source_key` |
 
 ## For developers
 
-These instructions follow the SDK v0.29.0
-[storage-provider guide](https://github.com/Bloem-Studios/bloem-plugin-sdk/blob/v0.29.0/docs/storage-provider.md)
-and the Bloem Server
-[native storage architecture](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-native-storage.md).
-The approval example matches the actual startup loader's map shape: artifact key →
-`{manifest, checksum, os, arch}`.
+The plugin is built on the SDK v0.29.0
+[storage-provider guide](https://github.com/Bloem-Studios/bloem-plugin-sdk/blob/v0.29.0/docs/storage-provider.md).
+Bloem Server's
+[native storage architecture](https://github.com/Bloem-Studios/bloem-server/blob/main/docs/architecture/bloem-native-storage.md)
+describes the host side. The approval example has the shape the server's startup
+loader reads: artifact key → `{manifest, checksum, os, arch}`.
 
 The web admin (the Storage tab of the Plugins page, or an organization's Storage
 sources page) calls the catalog routes, `POST .../catalog/installations` and
@@ -160,17 +160,21 @@ access to a real Bookwarehouse deployment.
 
 ### 3. Inspect support and install
 
-Obtain a signed administrative context via `POST /api/bloem/v1/admin/session` with
-current scope and resource authority. An ordinary viewer token is insufficient. The
-prefixes are:
+Exchange your login session for an administrative context with
+`POST /api/bloem/v2/admin/session`. Send `{"scope": "platform"}` for the platform, or
+`{"scope": "organization", "organization_id": "<id>"}` for one organization; the
+response holds an `access_token` and its `expires_at`. The caller must be a platform
+administrator, or an administrator of that organization. A viewer token and an API
+key without a login session are refused. The prefixes are:
 
-- Organization: `/api/bloem/v1/admin/organization/native-storage`
-- Platform: `/api/bloem/v1/admin/platform/native-storage`
+- Organization: `/api/bloem/v2/admin/organization/native-storage`
+- Platform: `/api/bloem/v2/admin/platform/native-storage`
 
-Using the organization context as an example:
+Using the organization context as an example, with the `access_token` kept in
+`BLOEM_NATIVE_ADMIN_TOKEN`:
 
 ```sh
-NATIVE_URL='https://bloem.example/api/bloem/v1/admin/organization/native-storage'
+NATIVE_URL='https://bloem.example/api/bloem/v2/admin/organization/native-storage'
 curl --fail-with-body "$NATIVE_URL/capabilities" \
   -H "Authorization: Bearer $BLOEM_NATIVE_ADMIN_TOKEN"
 curl --fail-with-body "$NATIVE_URL/artifacts" \
@@ -236,9 +240,9 @@ host-approved, uploaded bytes that do not match it, or a configuration that does
 satisfy the manifest's schema give `422 artifact_rejected`.
 
 Success returns `201 {source: ...}`. It creates neither a library nor a scan. Create
-the library through the ordinary new-library form, or v2 `createLibrary` with
-`storage_source` set to the source key instead of `paths`; its first scan is queued
-with it.
+the library through the ordinary new-library form, or with `POST /api/v2/libraries`
+and `storage_source` set to the source key instead of `paths`; its first scan is
+queued with it.
 
 ### 4. Replace configuration through the native route
 

@@ -86,7 +86,7 @@ Bookwarehouse API calls the plugin makes, is in the [plugin reference](docs/refe
 
 ## Build from source
 
-You need Go 1.26 or newer (`go.mod` says `go 1.26.0`; CI and `scripts/build.sh` use
+You need Go 1.26 or newer (`go.mod` says `go 1.26.0`; `scripts/build.sh` uses
 Go 1.27.4) and, for the release metadata files, Python 3.8 or newer. The plugin uses
 the public [`github.com/Bloem-Studios/bloem-plugin-sdk`](https://github.com/Bloem-Studios/bloem-plugin-sdk)
 (Apache-2.0).
@@ -111,6 +111,5 @@ Do not open a public issue for a security problem.
 
 ## Licence
 
-GNU Affero General Public License v3. See [LICENSE](LICENSE). Releases made before
-this repository was published under the AGPL v3 were released under a proprietary
-licence and stay under it.
+GNU Affero General Public License v3. See [LICENSE](LICENSE). Earlier releases were
+released under a proprietary licence and stay under it.
